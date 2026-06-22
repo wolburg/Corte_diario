@@ -336,7 +336,7 @@ if "Dias a vencimiento" in cols:
 
 styled = df_cli[cols].style.format(fmt)
 if "Dias a vencimiento" in cols:
-    styled = styled.applymap(
+    styled = styled.map(
         lambda v: "color: red" if isinstance(v, (int, float)) and v < 0 else "",
         subset=["Dias a vencimiento"]
     )
