@@ -279,8 +279,8 @@ df_final = df_final.merge(
 
 hoy = pd.Timestamp.today().normalize()
 
-df_final["Fecha de vencimiento"] = pd.to_datetime(df_final["Fecha de vencimiento"], dayfirst=True, errors='coerce')
-df_final["Fecha de emisión"]     = pd.to_datetime(df_final["Fecha de emisión"],     dayfirst=True, errors='coerce')
+df_final["Fecha de vencimiento"] = pd.to_datetime(df_final["Fecha de vencimiento"], dayfirst=True, errors='coerce').dt.date
+df_final["Fecha de emisión"]     = pd.to_datetime(df_final["Fecha de emisión"],     dayfirst=True, errors='coerce').dt.date
 df_final["Dias a vencimiento"]   = (df_final["Fecha de vencimiento"] - hoy).dt.days
 
 
