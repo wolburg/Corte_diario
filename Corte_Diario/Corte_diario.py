@@ -62,6 +62,10 @@ with st.sidebar:
     if tasas:
         st.metric("TIIE 28 días",  f"{tasas['tiie_28']:.4f}%",  tasas['tiie_28_fecha'])
         st.metric("TIIE Fondeo",   f"{tasas['tiie_fondeo']:.4f}%", tasas['tiie_fondeo_fecha'])
+    st.divider()
+    if st.button("🔄 Actualizar catálogo"):
+        get_sheet.clear()
+        st.rerun()
 
 if not archivo:
     st.info("👆 Sube el archivo Excel del corte diario para comenzar.")
