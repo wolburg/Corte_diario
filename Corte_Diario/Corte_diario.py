@@ -322,10 +322,11 @@ vtc_cli    = df_cli["Valor Total de la Cartera"].iloc[0]
 
 # ── Info ──────────────────────────────────────────────────────────────────────
 st.markdown(f"### {nombre_cli}")
-c1, c2, c3 = st.columns(3)
+c1, c2, c3, c4 = st.columns(4)
 c1.metric("Contrato",            contrato_sel)
 c2.metric("Valor Total Cartera", f"${vtc_cli:,.2f}")
 c3.metric("Posiciones",          len(df_cli))
+c4.metric("Valuacion Total", f"${df_cli["Valuacion"].sum():,.2f}")
 
 # ── Tabla ────────────────────────────────────────────────────────────────────
 cols = [c for c in ["Emisora","Valuación","% Cartera","tasa_total",
