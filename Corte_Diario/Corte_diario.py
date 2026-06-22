@@ -277,8 +277,10 @@ df_final = df_final.merge(
     how='left'  
 )
 
+emisoras_en_catalogo = set(df_sheet["Emisora"].dropna().unique())
+
 emisoras_sin_catalogo = (
-    df_final[df_final["tasa_total"].isna()]["Emisora"]
+    df_final[~df_final["Emisora"].isin(emisoras_en_catalogo)]["Emisora"]
     .drop_duplicates()
     .sort_values()
     .reset_index(drop=True)
