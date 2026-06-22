@@ -277,6 +277,24 @@ df_final = df_final.merge(
     how='left'  
 )
 
+emisoras_sin_catalogo = (
+    df_final[df_final["tasa_total"].isna()]["Emisora"]
+    .drop_duplicates()
+    .sort_values()
+    .reset_index(drop=True)
+)
+
+if not emisoras_sin_catalogo.empty:
+    with st.sidebar:
+        st.divider()
+        st.warning(f"⚠️ {len(emisoras_sin_catalogo)} emisora(s) sin catálogo")
+        st.dataframe(
+            emisoras_sin_catalogo.rename("Emisora faltante"),
+            hide_index=True,
+            use_container_width=True,
+        )
+        st.caption("Agrégalas al Google Sheet para ver su tasa.")
+
 hoy = pd.Timestamp.today().normalize()
 
 df_final["Fecha de vencimiento"] = pd.to_datetime(df_final["Fecha de vencimiento"], dayfirst=True, errors='coerce')
