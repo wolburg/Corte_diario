@@ -74,7 +74,6 @@ if not archivo:
 # Reemplaza ARCHIVO_EXCEL por archivo (el objeto subido)
 df_raw = pd.read_excel(archivo, header=None, engine="openpyxl")
 
-# %%
 # FUNCIONES DE PARSEO
 
 def es_contrato(valor):
@@ -109,8 +108,6 @@ def es_seccion_header(valor):
     v = str(valor).strip()
     return any(v == s for s in secciones) or es_contrato(v)
 
-
-# %%
 # EXTRACCIÓN PRINCIPAL
 
 registros = []
@@ -309,7 +306,24 @@ df_final["Dias a vencimiento"]   = (df_final["Fecha de vencimiento"] - hoy).dt.d
 df_final["Fecha de vencimiento"] = df_final["Fecha de vencimiento"].dt.date
 df_final["Fecha de emisión"]     = df_final["Fecha de emisión"].dt.date
 
+#Alarms de dias a vencer 
+proximos = df_final[
+    (df_final["Dias a vencimiento"] >= 0) &
+    (df_final["Dias a vencimiento"] <= 10)][["# Contrato", "Nombre", "Emisora", "Valuación", "Dias a vencimiento"]].drop_duplicates().sort_values("Dias a vencimiento")
 
+if not proximos.empty:
+    st.warning(f"⚠️ {len(proximos)} posición(es) vencen en los próximos 10 días")
+    st.dataframe(
+        proximos.style.format({
+            "Valuación": "${:,.2f}",
+            "Dias a vencimiento": "{:.0f} días",
+        }).map(
+            lambda v: "background-color: #fff3cd" if isinstance(v, (int, float)) and v <= 3 else "",
+            subset=["Dias a vencimiento"]
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
 # ─────────────────────────────────────────────────────────────────────────────
 # EXPORTAR A EXCEL
 # ─────────────────────────────────────────────────────────────────────────────
