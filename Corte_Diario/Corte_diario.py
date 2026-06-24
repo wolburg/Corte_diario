@@ -399,3 +399,29 @@ fig.update_traces(
 )
 st.plotly_chart(fig, use_container_width=True)
 
+#Grafica de pastel emisora 
+st.subheader("📅 Emisoras próximas a vencer")
+
+proximos_cliente = df_cli[
+    df_cli["Dias a vencimiento"].notna() &
+    (df_cli["Dias a vencimiento"] >= 0) &
+    (df_cli["Dias a vencimiento"] <= 10)].groupby("Emisora")["Valuación"].sum().reset_index()
+
+if proximos_cliente.empty:
+    st.info("No hay emisoras próximas a vencer en los próximos 10 días.")
+else:
+    fig2 = px.pie(
+        proximos_cliente,
+        names="Emisora",
+        values="Valuación",
+        title="Emisoras que vencen en 10 días",
+        hole=0.35,
+        color_discrete_sequence=px.colors.qualitative.Set1,
+    )
+    fig2.update_traces(
+        textposition="inside",
+        textinfo="percent+label",
+        hovertemplate="<b>%{label}</b><br>$%{value:,.2f}<br>%{percent}<extra></extra>",
+    )
+    st.plotly_chart(fig2, use_container_width=True)
+
