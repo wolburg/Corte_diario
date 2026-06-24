@@ -324,11 +324,10 @@ if not proximos.empty:
 
 #Grafica de pastel emisora 
 st.subheader("📅 Emisoras próximas a vencer")
-
-proximos_cliente = df_cli[
-    df_cli["Dias a vencimiento"].notna() &
-    (df_cli["Dias a vencimiento"] >= 0) &
-    (df_cli["Dias a vencimiento"] <= 10)].groupby("Emisora")["Valuación"].sum().reset_index()
+proximos_cliente = df_final[
+    df_final["Dias a vencimiento"].notna() &
+    (df_final["Dias a vencimiento"] >= 0) &
+    (df_final["Dias a vencimiento"] <= 10)].groupby("Emisora")["Valuación"].sum().reset_index()
 
 if proximos_cliente.empty:
     st.info("No hay emisoras próximas a vencer en los próximos 10 días.")
