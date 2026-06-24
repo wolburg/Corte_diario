@@ -317,10 +317,7 @@ if not proximos.empty:
         proximos.style.format({
             "Valuación": "${:,.2f}",
             "Dias a vencimiento": "{:.0f} días",
-        }).map(
-            lambda v: "background-color: #fff3cd" if isinstance(v, (int, float)) and v <= 3 else "",
-            subset=["Dias a vencimiento"]
-        ),
+        }),
         use_container_width=True,
         hide_index=True,
     )
