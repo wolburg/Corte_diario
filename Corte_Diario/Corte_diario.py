@@ -364,7 +364,7 @@ c1.metric("Contrato",            contrato_sel)
 c2.metric("Valor Total Cartera", f"${vtc_cli:,.2f}")
 c3.metric("Posiciones",          len(df_cli))
 c4.metric("Valuacion Total",     f"${df_cli['Valuación'].sum():,.2f}")
-c5.metric("Liquidez total",      f"${df["Valot Total de la Cartera"] - df["Valuación"]}")
+c5.metric("Liquidez total",      f"${df_cli["Valot Total de la Cartera"] - df_cli["Valuación"]}")
 
 # ── Tabla ────────────────────────────────────────────────────────────────────
 cols = [c for c in ["Emisora","Valuación","% Cartera","tasa_total",
