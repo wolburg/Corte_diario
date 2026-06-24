@@ -356,6 +356,7 @@ contrato_sel = sel.split(" — ")[0]
 df_cli = df_final[df_final["# Contrato"] == contrato_sel].copy()
 nombre_cli = df_cli["Nombre"].iloc[0]
 vtc_cli    = df_cli["Valor Total de la Cartera"].iloc[0]
+liquidez = df_cli["Valor Total de la Cartera"].iloc[0] - df_cli["Valuación"].sum()
 
 # ── Info ──────────────────────────────────────────────────────────────────────
 st.markdown(f"### {nombre_cli}")
@@ -364,7 +365,7 @@ c1.metric("Contrato",            contrato_sel)
 c2.metric("Valor Total Cartera", f"${vtc_cli:,.2f}")
 c3.metric("Posiciones",          len(df_cli))
 c4.metric("Valuacion Total",     f"${df_cli['Valuación'].sum():,.2f}")
-c5.metric("Liquidez total",      f"${df_cli["Valot Total de la Cartera"] - df_cli["Valuación"]}")
+c5.metric("Liquidez total",      f"${liquidez:,.2f}")
 
 # ── Tabla ────────────────────────────────────────────────────────────────────
 cols = [c for c in ["Emisora","Valuación","% Cartera","tasa_total",
