@@ -309,10 +309,10 @@ df_final["Fecha de emisión"]     = df_final["Fecha de emisión"].dt.date
 #Alarms de dias a vencer 
 proximos = df_final[
     (df_final["Dias a vencimiento"] >= 0) &
-    (df_final["Dias a vencimiento"] <= 10)][["# Contrato", "Nombre", "Emisora", "Valuación", "Dias a vencimiento"]].drop_duplicates().sort_values("Dias a vencimiento")
+    (df_final["Dias a vencimiento"] <= 30)][["# Contrato", "Nombre", "Emisora", "Valuación", "Dias a vencimiento"]].drop_duplicates().sort_values("Dias a vencimiento")
 
 if not proximos.empty:
-    st.warning(f"⚠️ {len(proximos)} posición(es) vencen en los próximos 10 días")
+    st.warning(f"⚠️ {len(proximos)} posición(es) vencen en los próximos 30 días")
     st.dataframe(
         proximos.style.format({
             "Valuación": "${:,.2f}",
@@ -327,16 +327,16 @@ st.subheader("📅 Emisoras próximas a vencer")
 proximos_cliente = df_final[
     df_final["Dias a vencimiento"].notna() &
     (df_final["Dias a vencimiento"] >= 0) &
-    (df_final["Dias a vencimiento"] <= 10)].groupby("Emisora")["Valuación"].sum().reset_index()
+    (df_final["Dias a vencimiento"] <= 30)].groupby("Emisora")["Valuación"].sum().reset_index()
 
 if proximos_cliente.empty:
-    st.info("No hay emisoras próximas a vencer en los próximos 10 días.")
+    st.info("No hay emisoras próximas a vencer en los próximos 30 días.")
 else:
     fig2 = px.pie(
         proximos_cliente,
         names="Emisora",
         values="Valuación",
-        title="Emisoras que vencen en 10 días",
+        title="Emisoras que vencen en 30 días",
         hole=0.35,
         color_discrete_sequence=px.colors.qualitative.Set1,
     )
