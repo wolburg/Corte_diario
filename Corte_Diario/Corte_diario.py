@@ -425,4 +425,46 @@ fig.update_traces(
 )
 st.plotly_chart(fig, use_container_width=True)
 
+## Vista general Finarq 
+st.subheader("🏢 Vista General Finarq")
+# Totales por emisora
+resumen_emisoras = (
+    df_final.groupby("Emisora")["Valuación"]
+    .sum()
+    .reset_index()
+    .sort_values("Valuación", ascending=False)
+)
+total_general = df_final["Valuación"].sum()
+resumen_emisoras["% del Total"] = resumen_emisoras["Valuación"] / total_general * 100
+# Métricas globales
+m1, m2, m3, m4 = st.columns(4)
+m1.metric("Total General",      f"${total_general:,.2f}")
+m2.metric("Clientes",           df_final["# Contrato"].nunique())
+m3.metric("Emisoras únicas",    resumen_emisoras["Emisora"].nunique())
+m4.metric("Posiciones totales", len(df_final))
+#  resumen por emisora
+st.dataframe(
+    resumen_emisoras.style.format({
+        "Valuación":   "${:,.2f}",
+        "% del Total": "{:.2f}%",}),
+    use_container_width=True,
+    hide_index=True,)
+#Pastel general
+fig_global = px.pie(
+    resumen_emisoras,
+    names="Emisora",
+    values="Valuación",
+    title=f"Distribución total por emisora — ${total_general:,.2f}",
+    hole=0.35,
+    color_discrete_sequence=px.colors.qualitative.Set3,
+)
+fig_global.update_traces(
+    textposition="inside",
+    textinfo="percent+label",
+    hovertemplate="<b>%{label}</b><br>$%{value:,.2f}<br>%{percent}<extra></extra>",
+)
+st.plotly_chart(fig_global, use_container_width=True)
+
+st.divider()
+
 
