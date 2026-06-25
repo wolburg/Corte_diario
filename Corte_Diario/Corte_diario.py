@@ -347,6 +347,47 @@ else:
     )
     st.plotly_chart(fig2, use_container_width=True)
 
+## Alerta de liquidez 
+st.subheader("🚨 Alerta de Liquidez para Comisión")
+resumen_clientes = (
+    df_final.groupby(["# Contrato", "Nombre"])
+    .agg(
+        valuacion_total=("Valuación", "sum"),
+        valor_total_cartera=("Valor Total de la Cartera", "first"),
+    )
+    .reset_index()
+)
+
+resumen_clientes["Comisión mensual"] = resumen_clientes["valor_total_cartera"] * 0.01 / 12
+resumen_clientes["Liquidez"]         = resumen_clientes["valor_total_cartera"] - resumen_clientes["valuacion_total"]
+resumen_clientes["Cubre comisión"]   = resumen_clientes["Liquidez"] >= resumen_clientes["Comisión mensual"]
+sin_liquidez = resumen_clientes[~resumen_clientes["Cubre comisión"]].sort_values("Liquidez")
+
+if sin_liquidez.empty:
+    st.success("✅ Todos los clientes tienen liquidez suficiente para cubrir la comisión.")
+else:
+    st.error(f"❌ {len(sin_liquidez)} cliente(s) sin liquidez suficiente para cubrir la comisión mensual")
+    st.dataframe(
+        sin_liquidez[[
+            "# Contrato", "Nombre",
+            "valuacion_total", "Comisión mensual",
+            "Liquidez"
+        ]].rename(columns={
+            "valuacion_total": "Valuación MdoD",
+        }).style.format({
+            "Valuación MdoD":   "${:,.2f}",
+            "Comisión mensual": "${:,.2f}",
+            "Liquidez":         "${:,.2f}",
+        }).map(
+            lambda v: "color: red" if isinstance(v, (int, float)) and v < 0 else "",
+            subset=["Liquidez"]
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+st.divider()
+
 # ─────────────────────────────────────────────────────────────────────────────
 # EXPORTAR A EXCEL
 # ─────────────────────────────────────────────────────────────────────────────
