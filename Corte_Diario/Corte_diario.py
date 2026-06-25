@@ -392,7 +392,7 @@ resumen_clientes = pd.concat(
 # Calcular comisión y liquidez
 resumen_clientes["Comisión mensual"] = resumen_clientes["valor_total_cartera"] * 0.01 / 12
 resumen_clientes["Liquidez"]         = resumen_clientes["valor_total_cartera"] - resumen_clientes["valuacion_total"]
-resumen_clientes["Cubre comisión"]   = resumen_clientes["Liquidez"] >= resumen_clientes["Comisión mensual"]
+resumen_clientes["Cubre comisión"] = ((resumen_clientes["valor_total_cartera"] > 0) &(resumen_clientes["Liquidez"] >= resumen_clientes["Comisión mensual"]))
 
 # Separar los que no cubren
 sin_liquidez = resumen_clientes[~resumen_clientes["Cubre comisión"]].sort_values("Liquidez")
