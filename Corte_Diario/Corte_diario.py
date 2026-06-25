@@ -465,15 +465,18 @@ df_cli = df_final[df_final["# Contrato"] == contrato_sel].copy()
 nombre_cli = df_cli["Nombre"].iloc[0]
 vtc_cli    = df_cli["Valor Total de la Cartera"].iloc[0]
 liquidez = df_cli["Valor Total de la Cartera"].iloc[0] - df_cli["Valuación"].sum()
+pct_liquidez = (liquidez / df_cli["Valor Total de la Cartera"].iloc[0] * 100) if df_cli["Valor Total de la Cartera"].iloc[0] > 0 else 0
+
 
 # ── Info ──────────────────────────────────────────────────────────────────────
 st.markdown(f"### {nombre_cli}")
-c1, c2, c3, c4, c5 = st.columns(5)
+c1, c2, c3, c4, c5, c6 = st.columns(6)
 c1.metric("Contrato",            contrato_sel)
 c2.metric("Valor Total Cartera", f"${vtc_cli:,.2f}")
 c3.metric("Posiciones",          len(df_cli))
 c4.metric("Valuacion Total",     f"${df_cli['Valuación'].sum():,.2f}")
 c5.metric("Liquidez total",      f"${liquidez:,.2f}")
+c6.metric("% Liquidez",          f"{pct_liquidez:.2f}%")
 
 # ── Tabla ────────────────────────────────────────────────────────────────────
 cols = [c for c in ["Emisora","Valuación","% Cartera","tasa_total",
