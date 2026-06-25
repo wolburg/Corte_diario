@@ -111,7 +111,6 @@ def es_seccion_header(valor):
 # EXTRACCIÓN PRINCIPAL
 
 registros = []
-
 # Estado del parser
 contrato_actual = None
 nombre_actual   = None
@@ -119,6 +118,7 @@ en_posiciones   = False
 en_mdo_dinero   = False
 en_emisoras     = False
 vtc_por_contrato = {} 
+nombres_por_contrato = {}
 
 for idx, fila in df_raw.iterrows():
     col_a = fila[0]  
@@ -134,6 +134,9 @@ for idx, fila in df_raw.iterrows():
         en_posiciones   = False
         en_mdo_dinero   = False
         en_emisoras     = False
+        if contrato_actual not in vtc_por_contrato:
+            vtc_por_contrato[contrato_actual] = 0.0
+        nombres_por_contrato[contrato_actual] = nombre_actual
         continue
     #VTC
     if val_a == 'Valor Total de la Cartera':
@@ -205,11 +208,18 @@ for idx, fila in df_raw.iterrows():
 
 df_resultado = pd.DataFrame(registros)
 df_vtc = pd.DataFrame([
-    {'contrato': k, 'valor_total_cartera': v}
+    {
+        'contrato':            k,
+        'nombre':              nombres_por_contrato.get(k, ''),
+        'valor_total_cartera': v
+    }
     for k, v in vtc_por_contrato.items()
 ])
 
-df_resultado = df_resultado.merge(df_vtc, on='contrato', how='left')
+df_todos_clientes = df_vtc.copy()
+df_resultado = df_resultado.merge(
+    df_vtc[['contrato', 'valor_total_cartera']],
+    on='contrato', how='left')
 
 
 # Vista rápida: pares (ticker, serie) únicos
@@ -349,7 +359,8 @@ else:
 
 ## Alerta de liquidez 
 st.subheader("🚨 Alerta de Liquidez para Comisión")
-resumen_clientes = (
+# Clientes con posiciones
+clientes_con_posiciones = (
     df_final.groupby(["# Contrato", "Nombre"])
     .agg(
         valuacion_total=("Valuación", "sum"),
@@ -358,10 +369,39 @@ resumen_clientes = (
     .reset_index()
 )
 
+# Clientes sin posiciones (en el corte pero sin emisoras)
+contratos_con_pos = set(df_final["# Contrato"].unique())
+
+clientes_sin_posiciones = pd.DataFrame([
+    {
+        "# Contrato":          row["contrato"],
+        "Nombre":              row["nombre"],
+        "valuacion_total":     0.0,
+        "valor_total_cartera": row["valor_total_cartera"],
+    }
+    for _, row in df_todos_clientes.iterrows()
+    if row["contrato"] not in contratos_con_pos
+])
+
+# Unir ambos grupos
+resumen_clientes = pd.concat(
+    [clientes_con_posiciones, clientes_sin_posiciones],
+    ignore_index=True
+)
+
+# Calcular comisión y liquidez
 resumen_clientes["Comisión mensual"] = resumen_clientes["valor_total_cartera"] * 0.01 / 12
 resumen_clientes["Liquidez"]         = resumen_clientes["valor_total_cartera"] - resumen_clientes["valuacion_total"]
 resumen_clientes["Cubre comisión"]   = resumen_clientes["Liquidez"] >= resumen_clientes["Comisión mensual"]
+
+# Separar los que no cubren
 sin_liquidez = resumen_clientes[~resumen_clientes["Cubre comisión"]].sort_values("Liquidez")
+
+# Métricas de la alerta
+a1, a2, a3 = st.columns(3)
+a1.metric("Total clientes",         len(resumen_clientes))
+a2.metric("Cubren comisión",        resumen_clientes["Cubre comisión"].sum())
+a3.metric("Sin liquidez suficiente", len(sin_liquidez))
 
 if sin_liquidez.empty:
     st.success("✅ Todos los clientes tienen liquidez suficiente para cubrir la comisión.")
@@ -370,14 +410,16 @@ else:
     st.dataframe(
         sin_liquidez[[
             "# Contrato", "Nombre",
-            "valuacion_total", "Comisión mensual",
-            "Liquidez"
+            "valuacion_total", "valor_total_cartera",
+            "Comisión mensual", "Liquidez"
         ]].rename(columns={
-            "valuacion_total": "Valuación MdoD",
+            "valuacion_total":     "Valuación MdoD",
+            "valor_total_cartera": "Valor Total Cartera",
         }).style.format({
-            "Valuación MdoD":   "${:,.2f}",
-            "Comisión mensual": "${:,.2f}",
-            "Liquidez":         "${:,.2f}",
+            "Valuación MdoD":      "${:,.2f}",
+            "Valor Total Cartera": "${:,.2f}",
+            "Comisión mensual":    "${:,.2f}",
+            "Liquidez":            "${:,.2f}",
         }).map(
             lambda v: "color: red" if isinstance(v, (int, float)) and v < 0 else "",
             subset=["Liquidez"]
@@ -387,7 +429,6 @@ else:
     )
 
 st.divider()
-
 # ─────────────────────────────────────────────────────────────────────────────
 # EXPORTAR A EXCEL
 # ─────────────────────────────────────────────────────────────────────────────
