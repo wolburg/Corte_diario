@@ -467,6 +467,18 @@ vtc_cli    = df_cli["Valor Total de la Cartera"].iloc[0]
 liquidez = df_cli["Valor Total de la Cartera"].iloc[0] - df_cli["Valuación"].sum()
 pct_liquidez = (liquidez / df_cli["Valor Total de la Cartera"].iloc[0] * 100) if df_cli["Valor Total de la Cartera"].iloc[0] > 0 else 0
 
+# Fila de liquidez para la tabla
+fila_liquidez = pd.DataFrame([{
+    "Emisora":               "Liquidez",
+    "Valuación":             liquidez,
+    "% Cartera":             pct_liquidez,
+    "tasa_total":            None,
+    "Fecha de vencimiento":  None,
+    "Dias a vencimiento":    None,
+}])
+
+df_tabla = pd.concat([df_filtrado[cols], fila_liquidez[cols]], ignore_index=True)
+
 
 # ── Info ──────────────────────────────────────────────────────────────────────
 st.markdown(f"### {nombre_cli}")
@@ -485,7 +497,7 @@ fmt = {"Valuación":"${:,.2f}", "% Cartera":"{:.2f}%", "tasa_total":"{:.4f}%"}
 if "Dias a vencimiento" in cols:
     fmt["Dias a vencimiento"] = "{:.0f}"
 
-styled = df_cli[cols].style.format(fmt)
+styled = df_tabla.style.format(fmt, na_rep="—")
 if "Dias a vencimiento" in cols:
     styled = styled.map(
         lambda v: "color: red" if isinstance(v, (int, float)) and v < 0 else "",
@@ -494,9 +506,14 @@ if "Dias a vencimiento" in cols:
 st.dataframe(styled, use_container_width=True, hide_index=True)
 
 # ── Gráfica de pastel ─────────────────────────────────────────────────────────
-st.subheader("Composición del portafolio")
+df_pie = df_filtrado[["Emisora", "Valuación"]].copy()
+df_pie = pd.concat([
+    df_pie,
+    pd.DataFrame([{"Emisora": "💧 Liquidez", "Valuación": liquidez}])
+], ignore_index=True)
+
 fig = px.pie(
-    df_cli,
+    df_pie,         
     names="Emisora",
     values="Valuación",
     title=f"Portafolio de {nombre_cli}",
