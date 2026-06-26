@@ -556,7 +556,7 @@ if "Dias a vencimiento" in cols:
 
 # ── Fila liquidez ─────────────────────────────────────────────────────────────
 fila_liquidez = pd.DataFrame([{
-    "Emisora":              "💧 Liquidez",
+    "Emisora":              "Liquidez",
     "Valuación":            liquidez,
     "% Cartera":            pct_liquidez,
     "tasa_total":           None,
