@@ -462,26 +462,20 @@ sel = st.selectbox("Selecciona un cliente", clientes["label"].tolist())
 contrato_sel = sel.split(" — ")[0]
 
 df_cli = df_final[df_final["# Contrato"] == contrato_sel].copy()
-nombre_cli = df_cli["Nombre"].iloc[0]
-vtc_cli    = df_cli["Valor Total de la Cartera"].iloc[0]
-liquidez = df_cli["Valor Total de la Cartera"].iloc[0] - df_cli["Valuación"].sum()
-pct_liquidez = (liquidez / df_cli["Valor Total de la Cartera"].iloc[0] * 100) if df_cli["Valor Total de la Cartera"].iloc[0] > 0 else 0
-
-# Fila de liquidez para la tabla
-fila_liquidez = pd.DataFrame([{
-    "Emisora":               "Liquidez",
-    "Valuación":             liquidez,
-    "% Cartera":             pct_liquidez,
-    "tasa_total":            None,
-    "Fecha de vencimiento":  None,
-    "Dias a vencimiento":    None,
-}])
-
-df_tabla = pd.concat([df_filtrado[cols], fila_liquidez[cols]], ignore_index=True)
-
+nombre_cli   = df_cli["Nombre"].iloc[0]
+vtc_cli      = df_cli["Valor Total de la Cartera"].iloc[0]
+liquidez     = vtc_cli - df_cli["Valuación"].sum()
+pct_liquidez = (liquidez / vtc_cli * 100) if vtc_cli > 0 else 0
 
 # ── Info ──────────────────────────────────────────────────────────────────────
 st.markdown(f"### {nombre_cli}")
+st.markdown("""
+    <style>
+    [data-testid="stMetricValue"] { font-size: 1.1rem !important; }
+    [data-testid="stMetricLabel"] { font-size: 0.8rem !important; }
+    </style>
+""", unsafe_allow_html=True)
+
 c1, c2, c3, c4, c5, c6 = st.columns(6)
 c1.metric("Contrato",            contrato_sel)
 c2.metric("Valor Total Cartera", f"${vtc_cli:,.2f}")
@@ -490,13 +484,88 @@ c4.metric("Valuacion Total",     f"${df_cli['Valuación'].sum():,.2f}")
 c5.metric("Liquidez total",      f"${liquidez:,.2f}")
 c6.metric("% Liquidez",          f"{pct_liquidez:.2f}%")
 
-# ── Tabla ────────────────────────────────────────────────────────────────────
+# ── Filtros ───────────────────────────────────────────────────────────────────
+with st.expander("🔎 Filtros", expanded=False):
+    f1, f2, f3 = st.columns(3)
+
+    emisoras_disponibles = ["Todas"] + sorted(df_cli["Emisora"].unique().tolist())
+    filtro_emisora = f1.selectbox("Emisora", emisoras_disponibles)
+
+    fechas_validas = df_cli["Fecha de vencimiento"].dropna()
+    if not fechas_validas.empty:
+        fecha_min = fechas_validas.min()
+        fecha_max = fechas_validas.max()
+        filtro_fechas = f2.date_input(
+            "Rango de vencimiento",
+            value=(fecha_min, fecha_max),
+            min_value=fecha_min,
+            max_value=fecha_max,
+        )
+    else:
+        filtro_fechas = None
+
+    filtro_dias = f3.selectbox(
+        "Días a vencimiento",
+        ["Todos", "Vencidos", "0-30 días", "31-90 días", "91-180 días", "más de 180 días"]
+    )
+
+# ── Aplicar filtros ───────────────────────────────────────────────────────────
+df_filtrado = df_cli.copy()
+
+if filtro_emisora != "Todas":
+    df_filtrado = df_filtrado[df_filtrado["Emisora"] == filtro_emisora]
+
+if filtro_fechas and len(filtro_fechas) == 2:
+    fecha_ini, fecha_fin = filtro_fechas
+    df_filtrado = df_filtrado[
+        df_filtrado["Fecha de vencimiento"].notna() &
+        (df_filtrado["Fecha de vencimiento"] >= fecha_ini) &
+        (df_filtrado["Fecha de vencimiento"] <= fecha_fin)
+    ]
+
+if filtro_dias != "Todos":
+    if filtro_dias == "Vencidos":
+        df_filtrado = df_filtrado[df_filtrado["Dias a vencimiento"] < 0]
+    elif filtro_dias == "0-30 días":
+        df_filtrado = df_filtrado[
+            df_filtrado["Dias a vencimiento"].notna() &
+            (df_filtrado["Dias a vencimiento"] >= 0) &
+            (df_filtrado["Dias a vencimiento"] <= 30)
+        ]
+    elif filtro_dias == "31-90 días":
+        df_filtrado = df_filtrado[
+            df_filtrado["Dias a vencimiento"].notna() &
+            (df_filtrado["Dias a vencimiento"] > 30) &
+            (df_filtrado["Dias a vencimiento"] <= 90)
+        ]
+    elif filtro_dias == "91-180 días":
+        df_filtrado = df_filtrado[
+            df_filtrado["Dias a vencimiento"].notna() &
+            (df_filtrado["Dias a vencimiento"] > 90) &
+            (df_filtrado["Dias a vencimiento"] <= 180)
+        ]
+    elif filtro_dias == "más de 180 días":
+        df_filtrado = df_filtrado[df_filtrado["Dias a vencimiento"] > 180]
+
+# ── cols y formato ────────────────────────────────────────────────────────────
 cols = [c for c in ["Emisora","Valuación","% Cartera","tasa_total",
                      "Fecha de vencimiento","Dias a vencimiento"] if c in df_cli.columns]
 fmt = {"Valuación":"${:,.2f}", "% Cartera":"{:.2f}%", "tasa_total":"{:.4f}%"}
 if "Dias a vencimiento" in cols:
     fmt["Dias a vencimiento"] = "{:.0f}"
 
+# ── Fila liquidez ─────────────────────────────────────────────────────────────
+fila_liquidez = pd.DataFrame([{
+    "Emisora":              "💧 Liquidez",
+    "Valuación":            liquidez,
+    "% Cartera":            pct_liquidez,
+    "tasa_total":           None,
+    "Fecha de vencimiento": None,
+    "Dias a vencimiento":   None,
+}])
+df_tabla = pd.concat([df_filtrado[cols], fila_liquidez[cols]], ignore_index=True)
+
+# ── Tabla ─────────────────────────────────────────────────────────────────────
 styled = df_tabla.style.format(fmt, na_rep="—")
 if "Dias a vencimiento" in cols:
     styled = styled.map(
@@ -506,14 +575,16 @@ if "Dias a vencimiento" in cols:
 st.dataframe(styled, use_container_width=True, hide_index=True)
 
 # ── Gráfica de pastel ─────────────────────────────────────────────────────────
+st.subheader("Composición del portafolio")
+
 df_pie = df_filtrado[["Emisora", "Valuación"]].copy()
 df_pie = pd.concat([
     df_pie,
-    pd.DataFrame([{"Emisora": "💧 Liquidez", "Valuación": liquidez}])
+    pd.DataFrame([{"Emisora": "Liquidez", "Valuación": liquidez}])
 ], ignore_index=True)
 
 fig = px.pie(
-    df_pie,         
+    df_pie,
     names="Emisora",
     values="Valuación",
     title=f"Portafolio de {nombre_cli}",
@@ -526,6 +597,33 @@ fig.update_traces(
     hovertemplate="<b>%{label}</b><br>$%{value:,.2f}<br>%{percent}<extra></extra>",
 )
 st.plotly_chart(fig, use_container_width=True)
+
+# ── Gráfica próximos vencimientos ────────────────────────────────────────────
+st.subheader("📅 Emisoras próximas a vencer")
+
+proximos_cliente = df_cli[
+    df_cli["Dias a vencimiento"].notna() &
+    (df_cli["Dias a vencimiento"] >= 0) &
+    (df_cli["Dias a vencimiento"] <= 10)
+].groupby("Emisora")["Valuación"].sum().reset_index()
+
+if proximos_cliente.empty:
+    st.info("No hay emisoras próximas a vencer en los próximos 10 días.")
+else:
+    fig2 = px.pie(
+        proximos_cliente,
+        names="Emisora",
+        values="Valuación",
+        title="Emisoras que vencen en 10 días",
+        hole=0.35,
+        color_discrete_sequence=px.colors.qualitative.Set1,
+    )
+    fig2.update_traces(
+        textposition="inside",
+        textinfo="percent+label",
+        hovertemplate="<b>%{label}</b><br>$%{value:,.2f}<br>%{percent}<extra></extra>",
+    )
+    st.plotly_chart(fig2, use_container_width=True)
 
 ## Vista general Finarq 
 st.subheader("🏢 Vista General Finarq")
