@@ -590,7 +590,7 @@ fila_liquidez = pd.DataFrame([{
     "Emisora":              "Liquidez",
     "Valuación":            liquidez,
     "% Cartera":            pct_liquidez,
-    "tasa_total":           None,
+    "Tasa":           None,
     "Fecha de vencimiento": None,
     "Dias a vencimiento":   None,
 }])
