@@ -63,9 +63,17 @@ with st.sidebar:
         st.metric("TIIE 28 días",  f"{tasas['tiie_28']:.4f}%",  tasas['tiie_28_fecha'])
         st.metric("TIIE Fondeo",   f"{tasas['tiie_fondeo']:.4f}%", tasas['tiie_fondeo_fecha'])
     st.divider()
-    if st.button("🔄 Actualizar catálogo"):
-        get_sheet.clear()
-        st.rerun()
+
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🔄 Catálogo"):
+            get_sheet.clear()
+            st.rerun()
+    with col2:
+        if st.button("🔄 Tasas"):
+            get_tasas_banxico.clear()
+            st.rerun()
 
 if not archivo:
     st.info("👆 Sube el archivo Excel del corte diario para comenzar.")
