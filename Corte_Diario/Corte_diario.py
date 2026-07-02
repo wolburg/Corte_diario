@@ -478,6 +478,17 @@ if not df_con_fecha.empty:
 else:
     prom_ponderado = 0
 
+#Tasa promedio ponderada 
+df_con_tasa = df_cli[df_cli["tasa_total"].notna()]
+
+if not df_con_tasa.empty:
+    prom_tasa = (
+        (df_con_tasa["tasa_total"] * df_con_tasa["Valuación"]).sum()
+        / df_con_tasa["Valuación"].sum()
+    )
+else:
+    prom_tasa = 0
+
 # ── Info ──────────────────────────────────────────────────────────────────────
 st.markdown(f"### {nombre_cli}")
 st.markdown("""
@@ -487,7 +498,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
+c1, c2, c3, c4, c5, c6, c7, c8 = st.columns(8)
 c1.metric("Contrato",            contrato_sel)
 c2.metric("Valor Total Cartera", f"${vtc_cli:,.2f}")
 c3.metric("Posiciones",          len(df_cli))
@@ -495,6 +506,7 @@ c4.metric("Valuacion Total",     f"${df_cli['Valuación'].sum():,.2f}")
 c5.metric("Liquidez total",      f"${liquidez:,.2f}")
 c6.metric("% Liquidez",          f"{pct_liquidez:.2f}%")
 c7.metric("Días prom. venc.",    f"{prom_ponderado:.0f} días")
+c8.metric("Tasa prom. pond.",    f"{prom_tasa:.4f}%")
 
 
 # ── Filtros ───────────────────────────────────────────────────────────────────
