@@ -65,15 +65,13 @@ with st.sidebar:
     st.divider()
 
     
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🔄 Catálogo"):
-            get_sheet.clear()
-            st.rerun()
-    with col2:
-        if st.button("🔄 Tasas"):
-            get_tasas_banxico.clear()
-            st.rerun()
+    if st.button("🔄 Actualizar catálogo"):
+        get_sheet.clear()
+        st.rerun()
+
+    if st.button("🔄 Actualizar tasas"):
+        get_tasas_banxico.clear()
+        st.rerun()
 
 if not archivo:
     st.info("👆 Sube el archivo Excel del corte diario para comenzar.")
