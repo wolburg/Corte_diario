@@ -452,7 +452,7 @@ st.download_button(
 )
 
 #Descargar Base completa
-buf_clientes = io.BytesI0()
+buf_clientes =  io.BytesIO()
 
 df_descarga = resumen_clientes[[
     "# Contrato", "Nombre",
