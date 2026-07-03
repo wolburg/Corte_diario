@@ -451,6 +451,29 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 )
 
+#Descargar Base completa
+buf_clientes = io.BytesI0()
+
+df_descarga = resumen_clientes[[
+    "# Contrato", "Nombre",
+    "valuacion_total", "valor_total_cartera",
+    "Comisión mensual", "Liquidez", "Cubre comisión"
+]].rename(columns={
+    "valuacion_total":     "Valuación MdoD",
+    "valor_total_cartera": "Valor Total Cartera",
+}).sort_values("Valor Total Cartera", ascending=False)
+
+with pd.ExcelWriter(buf_clientes, engine="openpyxl") as w:
+    df_descarga.to_excel(w, sheet_name="Clientes", index=False)
+
+st.download_button(
+    "⬇️ Descargar base completa de clientes",
+    data=buf_clientes.getvalue(),
+    file_name="base_clientes_comision.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+)
+
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # RESUMEN ESTADÍSTICO
