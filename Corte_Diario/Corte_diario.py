@@ -150,8 +150,8 @@ for idx, fila in df_raw.iterrows():
         vtc_por_contrato[contrato_actual] = float(fila[1]) if pd.notna(fila[1]) else 0.0
         continue
     if val_a == 'Saldo de Efectivo Hoy':
-    saldo_efectivo_por_contrato[contrato_actual] = float(fila[1]) if pd.notna(fila[1]) else 0.0
-    continue
+        saldo_efectivo_por_contrato[contrato_actual] = float(fila[1]) if pd.notna(fila[1]) else 0.0
+        continue
 
     # Detectar sección 'Posiciones'
     if val_a == 'Posiciones':
