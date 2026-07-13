@@ -252,7 +252,7 @@ df_final = df_resultado[[
     'ticker',
     'serie',
     'valuacion',
-    "valor_total_cartera"
+    "valor_total_cartera",
     "saldo_efectivo",
 ]].copy()
 
