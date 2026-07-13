@@ -222,7 +222,7 @@ df_vtc = pd.DataFrame([
         'contrato':            k,
         'nombre':              nombres_por_contrato.get(k, ''),
         'valor_total_cartera': v,
-        "saldo_efectivo": saldo_efectivo_por_contrato.get(k, 0.0),
+        "saldo_efectivo":      saldo_efectivo_por_contrato.get(k, 0.0),
     }
     for k, v in vtc_por_contrato.items()
 ])
