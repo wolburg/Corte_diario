@@ -269,11 +269,9 @@ df_final.columns = [
 
 df_final["Emisora"] = df_final["Ticker"] + " " + df_final["Serie"]
 
-
 df_final = df_final[[
-   '# Contrato', 'Nombre',"Ticker",'Serie' , 'Valuación','Emisora',"Valor Total de la Cartera"]]
-
-
+   '# Contrato', 'Nombre', 'Ticker', 'Serie', 'Valuación', 'Emisora', 'Valor Total de la Cartera', 'Saldo Efectivo'
+]]
 
 df_final["% Cartera"]= df_final["Valuación"] / df_final["Valor Total de la Cartera"] * 100
 
