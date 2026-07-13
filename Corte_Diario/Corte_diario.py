@@ -499,15 +499,11 @@ df_cli = df_final[df_final["# Contrato"] == contrato_sel].copy()
 nombre_cli   = df_cli["Nombre"].iloc[0]
 vtc_cli      = df_cli["Valor Total de la Cartera"].iloc[0]
 liquidez     = df_cli["Saldo Efectivo"].iloc[0]
-total_pie    = df_cli["Valuación"].sum() + liquidez
-pct_liquidez = (liquidez / total_pie * 100) if total_pie > 0 else 0
+pct_liquidez = (liquidez / vtc_cli * 100) if vtc_cli > 0 else 0
 
-liquidez     = df_cli["Saldo Efectivo"].iloc[0]
-total_pie    = df_cli["Valuación"].sum() + liquidez
-pct_liquidez = (liquidez / total_pie * 100) if total_pie > 0 else 0
 
 # ── % Cartera sobre total_pie
-df_cli["% Cartera"] = df_cli["Valuación"] / total_pie * 100
+df_cli["% Cartera"] = df_cli["Valuación"] / vtc_cli * 100
 
 # Promedio ponderado de vencimiento
 df_con_fecha = df_cli[df_cli["Dias a vencimiento"].notna() & (df_cli["Dias a vencimiento"] >= 0)]
