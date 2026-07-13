@@ -125,6 +125,7 @@ en_mdo_dinero   = False
 en_emisoras     = False
 vtc_por_contrato = {} 
 nombres_por_contrato = {}
+saldo_efectivo_por_contrato = {}
 
 for idx, fila in df_raw.iterrows():
     col_a = fila[0]  
@@ -148,6 +149,9 @@ for idx, fila in df_raw.iterrows():
     if val_a == 'Valor Total de la Cartera':
         vtc_por_contrato[contrato_actual] = float(fila[1]) if pd.notna(fila[1]) else 0.0
         continue
+    if val_a == 'Saldo de Efectivo Hoy':
+    saldo_efectivo_por_contrato[contrato_actual] = float(fila[1]) if pd.notna(fila[1]) else 0.0
+    continue
 
     # Detectar sección 'Posiciones'
     if val_a == 'Posiciones':
@@ -217,14 +221,16 @@ df_vtc = pd.DataFrame([
     {
         'contrato':            k,
         'nombre':              nombres_por_contrato.get(k, ''),
-        'valor_total_cartera': v
+        'valor_total_cartera': v,
+        "saldo_efectivo": saldo_efectivo_por_contrato.get(k, 0.0),
     }
     for k, v in vtc_por_contrato.items()
 ])
 
 df_todos_clientes = df_vtc.copy()
+
 df_resultado = df_resultado.merge(
-    df_vtc[['contrato', 'valor_total_cartera']],
+    df_vtc[['contrato', 'valor_total_cartera','saldo_efectivo']],
     on='contrato', how='left')
 
 
@@ -247,6 +253,7 @@ df_final = df_resultado[[
     'serie',
     'valuacion',
     "valor_total_cartera"
+    "saldo_efectivo",
 ]].copy()
 
 
@@ -256,7 +263,8 @@ df_final.columns = [
     'Ticker',
     'Serie',
     'Valuación',
-    'Valor Total de la Cartera'
+    'Valor Total de la Cartera',
+    'Saldo Efectivo', 
 ]
 
 
@@ -493,8 +501,16 @@ contrato_sel = sel.split(" — ")[0]
 df_cli = df_final[df_final["# Contrato"] == contrato_sel].copy()
 nombre_cli   = df_cli["Nombre"].iloc[0]
 vtc_cli      = df_cli["Valor Total de la Cartera"].iloc[0]
-liquidez     = vtc_cli - df_cli["Valuación"].sum()
-pct_liquidez = (liquidez / vtc_cli * 100) if vtc_cli > 0 else 0
+liquidez     = df_cli["Saldo Efectivo"].iloc[0]
+total_pie    = df_cli["Valuación"].sum() + liquidez
+pct_liquidez = (liquidez / total_pie * 100) if total_pie > 0 else 0
+
+liquidez     = df_cli["Saldo Efectivo"].iloc[0]
+total_pie    = df_cli["Valuación"].sum() + liquidez
+pct_liquidez = (liquidez / total_pie * 100) if total_pie > 0 else 0
+
+# ── % Cartera sobre total_pie
+df_cli["% Cartera"] = df_cli["Valuación"] / total_pie * 100
 
 # Promedio ponderado de vencimiento
 df_con_fecha = df_cli[df_cli["Dias a vencimiento"].notna() & (df_cli["Dias a vencimiento"] >= 0)]
