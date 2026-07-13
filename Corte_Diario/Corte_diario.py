@@ -5,6 +5,57 @@ import plotly.express as px
 import streamlit as st
 from datetime import datetime
 import io
+import streamlit_authenticator as stauth
+
+credentials = {
+    "usernames": {
+        "admin": {
+            "name":     "Administrador",
+            "password": "$2b$12$E46pgxE/rBVImEtNGusoGuLWxpOMdCTvOhH9l1D3KTrlwIbA5ry5q",
+            "role":     "admin",
+            "asesor":   None,
+        },
+        "ximena": {
+            "name":     "XIMENA MUÑOZ MORA",
+            "password": "$2b$12$Yuo1ScckF73h7MMWgdVgFeX/G9Pv8DegESIZCFUkuQ/QNtYz8VC0e",
+            "role":     "asesor",
+            "asesor":   "XIMENA MUÑOZ MORA",
+        },
+        "andrea": {
+            "name":     "ANDREA DÁVILA TREJO",
+            "password": "$2b$12$IXpzyHRki.yyc6mhpmE3g.gPMNu6Pzl42g/4tJjUTHWrMlzA/c3Pq",
+            "role":     "asesor",
+            "asesor":   "ANDREA DÁVILA TREJO",
+        },
+        "jorge": {
+            "name":     "JORGE ANTONIO OROZCO LOPEZ",
+            "password": "$2b$12$HH8yosRAWrL2yNamp1ihS.btTpf9lNE8vYBuyxqNRRP2OeATANNz2",
+            "role":     "asesor",
+            "asesor":   "JORGE ANTONIO OROZCO LOPEZ",
+        },
+        "marco": {
+            "name":     "MARCO ANTONIO OCHOA CARDENAS",
+            "password": "$2b$12$lMraAxgSV8nVlPptiv/8weL6qn/hedFu9NTjdq085M0KINQybHpe.",
+            "role":     "asesor",
+            "asesor":   "MARCO ANTONIO OCHOA CARDENAS",
+        },
+        "eduardo": {
+            "name":     "EDUARDO JAQUEZ BORREGO",
+            "password": "$2b$12$PK80dZ38KPHe7XMB8IsIxuNY.g.igWVLfivjI9aiThH.XKiasn4Ji",
+            "role":     "asesor",
+            "asesor":   "EDUARDO JAQUEZ BORREGO",
+        },
+    }
+}
+
+authenticator = stauth.Authenticate(
+    credentials,
+    cookie_name        = "corte_diario",
+    key         = "clave_secreta_finarq_2026",
+    cookie_expiry_days = 1,
+)
+
+
 
 
 BANXICO_TOKEN = "5b4940077ca974bf7d505dcf537701c924ed3c8264499dec142fc79f65c5cf72"
@@ -44,34 +95,69 @@ def get_tasas_banxico() -> dict:
     
     return resultado
 
+#Cargar catalogo sheets
 @st.cache_data(ttl=600000,show_spinner="Leyendo catálogo...")
 def get_sheet():
     url = "https://docs.google.com/spreadsheets/d/1Li6A3vVrxj3U6stsJG9lsjre0lkeynJR/export?format=csv&gid=736741268"
     return pd.read_csv(url)
 
+#Cargar sheets asesores
+@st.cache_data(ttl=600000,show_spinner="Leyendo sheets de asesores...")
+def get_asesores():
+    url = "https://docs.google.com/spreadsheets/d/1Li6A3vVrxj3U6stsJG9lsjre0lkeynJR/export?format=csv&gid=618953566"
+    df = pd.read_csv(url)
+    df.columns = ["Nombre", "Asesor"]
+    return df
+
+
+#Iniciar sesion
 st.set_page_config(page_title="Corte Diario Promotor", page_icon="📊", layout="wide")
-st.title("📊 Corte Diario Promotor")
+
+authenticator.login("Login", location="main")
+
+if not st.session_state.get("authentication_status"):
+    st.title("📊 Corte Diario Promotor")
+    if st.session_state.get("authentication_status") is False:
+        st.error("Usuario o contraseña incorrectos")
+    else:
+        st.info("Ingresa tus credenciales para continuar.")
+    st.stop()
+
+usuario_actual = st.session_state["username"]
+rol_actual     = credentials["usernames"][usuario_actual]["role"]
+asesor_actual  = credentials["usernames"][usuario_actual]["asesor"]
+
+if rol_actual == "admin":
+    st.title("📊 Corte Diario Promotor — Admin")
+else:
+    st.title(f"📊 Mi Cartera — {st.session_state['name']}")
 
 # ── Sidebar ──────────────────────────────────────────────────────────────────
 
 with st.sidebar:
     st.header("⚙️ Configuración")
+    st.write(f"👤 {st.session_state['name']}")
+    authenticator.logout("Cerrar sesión", location="sidebar")
+    st.divider()
     archivo = st.file_uploader("Sube el Excel del corte", type=["xlsx"])
     st.divider()
     tasas = get_tasas_banxico()
     if tasas:
-        st.metric("TIIE 28 días",  f"{tasas['tiie_28']:.4f}%",  tasas['tiie_28_fecha'])
-        st.metric("TIIE Fondeo",   f"{tasas['tiie_fondeo']:.4f}%", tasas['tiie_fondeo_fecha'])
+        st.metric("TIIE 28 días", f"{tasas['tiie_28']:.4f}%",  tasas['tiie_28_fecha'])
+        st.metric("TIIE Fondeo",  f"{tasas['tiie_fondeo']:.4f}%", tasas['tiie_fondeo_fecha'])
     st.divider()
 
-    
-    if st.button("🔄 Actualizar catálogo"):
-        get_sheet.clear()
-        st.rerun()
-
-    if st.button("🔄 Actualizar tasas"):
-        get_tasas_banxico.clear()
-        st.rerun()
+    # Botones solo para admin
+    if rol_actual == "admin":
+        if st.button("🔄 Actualizar catálogo"):
+            get_sheet.clear()
+            st.rerun()
+        if st.button("🔄 Actualizar tasas"):
+            get_tasas_banxico.clear()
+            st.rerun()
+        if st.button("🔄 Actualizar Asesores"):
+            get_asesores.clear()
+            st.rerun()
 
 if not archivo:
     st.info("👆 Sube el archivo Excel del corte diario para comenzar.")
@@ -125,7 +211,7 @@ en_mdo_dinero   = False
 en_emisoras     = False
 vtc_por_contrato = {} 
 nombres_por_contrato = {}
-saldo_efectivo_por_contrato = {}
+saldo_efectivo_por_contrato = {} 
 
 for idx, fila in df_raw.iterrows():
     col_a = fila[0]  
@@ -222,15 +308,14 @@ df_vtc = pd.DataFrame([
         'contrato':            k,
         'nombre':              nombres_por_contrato.get(k, ''),
         'valor_total_cartera': v,
-        "saldo_efectivo":      saldo_efectivo_por_contrato.get(k, 0.0),
+        'saldo_efectivo':      saldo_efectivo_por_contrato.get(k, 0.0),
     }
     for k, v in vtc_por_contrato.items()
 ])
 
 df_todos_clientes = df_vtc.copy()
-
 df_resultado = df_resultado.merge(
-    df_vtc[['contrato', 'valor_total_cartera','saldo_efectivo']],
+    df_vtc[['contrato', 'valor_total_cartera', "saldo_efectivo"]],
     on='contrato', how='left')
 
 
@@ -245,15 +330,17 @@ pares_unicos = (
 # ─────────────────────────────────────────────────────────────────────────────
 # DATAFRAME FINAL
 # ─────────────────────────────────────────────────────────────────────────────
+
 df_final = df_resultado[[
     'contrato',
     'nombre',
     'ticker',
     'serie',
     'valuacion',
-    'valor_total_cartera',
-    'saldo_efectivo',     
+    "valor_total_cartera",
+    'saldo_efectivo'
 ]].copy()
+
 
 df_final.columns = [
     '# Contrato',
@@ -266,14 +353,11 @@ df_final.columns = [
 ]
 
 
-
 df_final["Emisora"] = df_final["Ticker"] + " " + df_final["Serie"]
 
-df_final = df_final[[
-   '# Contrato', 'Nombre', 'Ticker', 'Serie', 'Valuación', 'Emisora', 'Valor Total de la Cartera', 'Saldo Efectivo'
-]]
 
-df_final["% Cartera"]= df_final["Valuación"] / df_final["Valor Total de la Cartera"] * 100
+df_final = df_final[[
+   '# Contrato', 'Nombre',"Ticker",'Serie' , 'Valuación','Emisora',"Valor Total de la Cartera", "Saldo Efectivo"]]
 
 
 df_sheet = get_sheet()
@@ -327,10 +411,34 @@ df_final["Dias a vencimiento"]   = (df_final["Fecha de vencimiento"] - hoy).dt.d
 df_final["Fecha de vencimiento"] = df_final["Fecha de vencimiento"].dt.date
 df_final["Fecha de emisión"]     = df_final["Fecha de emisión"].dt.date
 
+df_asesores = get_asesores()
+
+df_final = df_final.merge(
+    df_asesores,
+    left_on="Nombre",
+    right_on="Nombre",
+    how="left"
+)
+
+if rol_actual == "admin":
+    df_vista = df_final.copy()
+else:
+    df_vista = df_final[df_final["Asesor"] == asesor_actual].copy()
+    st.info(f"👤 Cartera de {st.session_state['name']} — {df_vista['# Contrato'].nunique()} clientes")
+
+#Warning de asesores
+sin_asesor = df_final[df_final["Asesor"].isna()]["Nombre"].drop_duplicates()
+if not sin_asesor.empty:
+    st.warning(f"⚠️ {len(sin_asesor)} cliente(s) sin asesor asignado:")
+    for nombre in sin_asesor:
+        st.caption(f"• {nombre}")
+
+
+
 #Alarms de dias a vencer 
-proximos = df_final[
-    (df_final["Dias a vencimiento"] >= 0) &
-    (df_final["Dias a vencimiento"] <= 30)][["# Contrato", "Nombre", "Emisora", "Valuación", "Dias a vencimiento"]].drop_duplicates().sort_values("Dias a vencimiento")
+proximos = df_vista[
+    (df_vista["Dias a vencimiento"] >= 0) &
+    (df_vista["Dias a vencimiento"] <= 30)][["# Contrato", "Nombre", "Emisora", "Valuación", "Dias a vencimiento"]].drop_duplicates().sort_values("Dias a vencimiento")
 
 if not proximos.empty:
     st.warning(f"⚠️ {len(proximos)} posición(es) vencen en los próximos 30 días")
@@ -345,10 +453,10 @@ if not proximos.empty:
 
 #Grafica de pastel emisora 
 st.subheader("📅 Emisoras próximas a vencer")
-proximos_cliente = df_final[
-    df_final["Dias a vencimiento"].notna() &
-    (df_final["Dias a vencimiento"] >= 0) &
-    (df_final["Dias a vencimiento"] <= 30)].groupby("Emisora")["Valuación"].sum().reset_index()
+proximos_cliente = df_vista[
+    df_vista["Dias a vencimiento"].notna() &
+    (df_vista["Dias a vencimiento"] >= 0) &
+    (df_vista["Dias a vencimiento"] <= 30)].groupby("Emisora")["Valuación"].sum().reset_index()
 
 if proximos_cliente.empty:
     st.info("No hay emisoras próximas a vencer en los próximos 30 días.")
@@ -370,9 +478,10 @@ else:
 
 ## Alerta de liquidez 
 st.subheader("🚨 Alerta de Liquidez para Comisión")
+
 # Clientes con posiciones
 clientes_con_posiciones = (
-    df_final.groupby(["# Contrato", "Nombre"])
+    df_vista.groupby(["# Contrato", "Nombre"])
     .agg(
         valuacion_total=("Valuación", "sum"),
         valor_total_cartera=("Valor Total de la Cartera", "first"),
@@ -380,8 +489,15 @@ clientes_con_posiciones = (
     .reset_index()
 )
 
+contratos_con_pos = set(clientes_con_posiciones["# Contrato"].unique())
+
 # Clientes sin posiciones (en el corte pero sin emisoras)
-contratos_con_pos = set(df_final["# Contrato"].unique())
+if rol_actual == "admin":
+    clientes_base = df_todos_clientes
+else:
+    # Obtener los contratos que pertenecen a este asesor según el sheet
+    nombres_asesor = set(df_asesores[df_asesores["Asesor"] == asesor_actual]["Nombre"])
+    clientes_base  = df_todos_clientes[df_todos_clientes["nombre"].isin(nombres_asesor)]
 
 clientes_sin_posiciones = pd.DataFrame([
     {
@@ -390,7 +506,7 @@ clientes_sin_posiciones = pd.DataFrame([
         "valuacion_total":     0.0,
         "valor_total_cartera": row["valor_total_cartera"],
     }
-    for _, row in df_todos_clientes.iterrows()
+    for _, row in clientes_base.iterrows()
     if row["contrato"] not in contratos_con_pos
 ])
 
@@ -446,8 +562,14 @@ st.divider()
 
 buf = io.BytesIO()
 with pd.ExcelWriter(buf, engine="openpyxl") as w:
-    df_final.to_excel(w, sheet_name="Posiciones", index=False)
-    pares_unicos.to_excel(w, sheet_name="Tickers Únicos", index=False)
+    df_vista.to_excel(w, sheet_name="Posiciones", index=False)
+    pares_unicos_vista = (
+        df_vista[['Ticker', 'Serie']]
+        .drop_duplicates()
+        .sort_values(['Ticker', 'Serie'])
+        .reset_index(drop=True)
+    )
+    pares_unicos_vista.to_excel(w, sheet_name="Tickers Únicos", index=False)
 
 st.download_button(
     "⬇️ Descargar Excel completo",
@@ -486,7 +608,7 @@ st.download_button(
 st.subheader("🔍 Consulta por cliente")
 
 clientes = (
-    df_final[["# Contrato", "Nombre"]]
+    df_vista[["# Contrato", "Nombre"]]
     .drop_duplicates()
     .assign(label=lambda d: d["# Contrato"] + " — " + d["Nombre"])
     .sort_values("Nombre")
@@ -495,15 +617,12 @@ clientes = (
 sel = st.selectbox("Selecciona un cliente", clientes["label"].tolist())
 contrato_sel = sel.split(" — ")[0]
 
-df_cli = df_final[df_final["# Contrato"] == contrato_sel].copy()
+df_cli = df_vista[df_vista["# Contrato"] == contrato_sel].copy()
 nombre_cli   = df_cli["Nombre"].iloc[0]
 vtc_cli      = df_cli["Valor Total de la Cartera"].iloc[0]
 liquidez     = df_cli["Saldo Efectivo"].iloc[0]
 pct_liquidez = (liquidez / vtc_cli * 100) if vtc_cli > 0 else 0
 
-
-# ── % Cartera sobre total_pie
-df_cli["% Cartera"] = df_cli["Valuación"] / vtc_cli * 100
 
 # Promedio ponderado de vencimiento
 df_con_fecha = df_cli[df_cli["Dias a vencimiento"].notna() & (df_cli["Dias a vencimiento"] >= 0)]
@@ -585,7 +704,7 @@ if filtro_fechas and len(filtro_fechas) == 2:
         (df_filtrado["Fecha de vencimiento"] >= fecha_ini) &
         (df_filtrado["Fecha de vencimiento"] <= fecha_fin)
     ]
-
+    
 if filtro_dias != "Todos":
     if filtro_dias == "Vencidos":
         df_filtrado = df_filtrado[df_filtrado["Dias a vencimiento"] < 0]
@@ -610,22 +729,19 @@ if filtro_dias != "Todos":
     elif filtro_dias == "más de 180 días":
         df_filtrado = df_filtrado[df_filtrado["Dias a vencimiento"] > 180]
 
+
+total_mdo = df_filtrado["Valuación"].sum()
+df_filtrado = df_filtrado.copy()
+df_filtrado.loc[:, "% Cartera"] = df_filtrado["Valuación"] / total_mdo * 100
+
+
 # ── cols y formato ────────────────────────────────────────────────────────────
 cols = [c for c in ["Emisora","Valuación","% Cartera","tasa_total",
-                     "Fecha de vencimiento","Dias a vencimiento"] if c in df_cli.columns]
+                     "Fecha de vencimiento","Dias a vencimiento"] if c in df_filtrado.columns]
 fmt = {"Valuación":"${:,.2f}", "% Cartera":"{:.2f}%", "tasa_total":"{:.4f}%"}
 if "Dias a vencimiento" in cols:
     fmt["Dias a vencimiento"] = "{:.0f}"
 
-# ── Fila liquidez ─────────────────────────────────────────────────────────────
-fila_liquidez = pd.DataFrame([{
-    "Emisora":              "Liquidez",
-    "Valuación":            liquidez,
-    "% Cartera":            pct_liquidez,
-    "tasa_total":           None,
-    "Fecha de vencimiento": None,
-    "Dias a vencimiento":   None,
-}])
 df_tabla = df_filtrado[cols].copy()
 
 # ── Tabla ─────────────────────────────────────────────────────────────────────
@@ -641,11 +757,6 @@ st.dataframe(styled, use_container_width=True, hide_index=True)
 st.subheader("Composición del portafolio")
 
 df_pie = df_filtrado[["Emisora", "Valuación"]].copy()
-df_pie = pd.concat([
-    df_pie,
-    pd.DataFrame([{"Emisora": "Liquidez", "Valuación": liquidez}])
-], ignore_index=True)
-
 fig = px.pie(
     df_pie,
     names="Emisora",
@@ -662,45 +773,45 @@ fig.update_traces(
 st.plotly_chart(fig, use_container_width=True)
 
 ## Vista general Finarq 
-st.subheader("🏢 Vista General Finarq")
-# Totales por emisora
-resumen_emisoras = (
-    df_final.groupby("Emisora")["Valuación"]
-    .sum()
-    .reset_index()
-    .sort_values("Valuación", ascending=False)
-)
-total_general = df_final["Valuación"].sum()
-resumen_emisoras["% del Total"] = resumen_emisoras["Valuación"] / total_general * 100
-# Métricas globales
-m1, m2, m3, m4 = st.columns(4)
-m1.metric("Total General",      f"${total_general:,.2f}")
-m2.metric("Clientes",           df_final["# Contrato"].nunique())
-m3.metric("Emisoras únicas",    resumen_emisoras["Emisora"].nunique())
-m4.metric("Posiciones totales", len(df_final))
-#  resumen por emisora
-st.dataframe(
-    resumen_emisoras.style.format({
-        "Valuación":   "${:,.2f}",
-        "% del Total": "{:.2f}%",}),
-    use_container_width=True,
-    hide_index=True,)
-#Pastel general
-fig_global = px.pie(
-    resumen_emisoras,
-    names="Emisora",
-    values="Valuación",
-    title=f"Distribución total por emisora — ${total_general:,.2f}",
-    hole=0.35,
-    color_discrete_sequence=px.colors.qualitative.Set3,
-)
-fig_global.update_traces(
-    textposition="inside",
-    textinfo="percent+label",
-    hovertemplate="<b>%{label}</b><br>$%{value:,.2f}<br>%{percent}<extra></extra>",
-)
-st.plotly_chart(fig_global, use_container_width=True)
+if rol_actual == "admin":
+    st.subheader("🏢 Vista General Finarq")
+    resumen_emisoras = (
+        df_vista.groupby("Emisora")["Valuación"]
+        .sum()
+        .reset_index()
+        .sort_values("Valuación", ascending=False)
+    )
+    total_general = df_vista["Valuación"].sum()
+    resumen_emisoras["% del Total"] = resumen_emisoras["Valuación"] / total_general * 100
 
-st.divider()
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Total General",      f"${total_general:,.2f}")
+    m2.metric("Clientes",           df_vista["# Contrato"].nunique())
+    m3.metric("Emisoras únicas",    resumen_emisoras["Emisora"].nunique())
+    m4.metric("Posiciones totales", len(df_vista))
 
+    st.dataframe(
+        resumen_emisoras.style.format({
+            "Valuación":   "${:,.2f}",
+            "% del Total": "{:.2f}%",
+        }),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    fig_global = px.pie(
+        resumen_emisoras,
+        names="Emisora",
+        values="Valuación",
+        title=f"Distribución total por emisora — ${total_general:,.2f}",
+        hole=0.35,
+        color_discrete_sequence=px.colors.qualitative.Set3,
+    )
+    fig_global.update_traces(
+        textposition="inside",
+        textinfo="percent+label",
+        hovertemplate="<b>%{label}</b><br>$%{value:,.2f}<br>%{percent}<extra></extra>",
+    )
+    st.plotly_chart(fig_global, use_container_width=True)
+    st.divider()
 
