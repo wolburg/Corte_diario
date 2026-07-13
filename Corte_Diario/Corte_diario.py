@@ -485,6 +485,7 @@ clientes_con_posiciones = (
     .agg(
         valuacion_total=("Valuación", "sum"),
         valor_total_cartera=("Valor Total de la Cartera", "first"),
+        saldo_efectivo=("Saldo Efectivo", "first"),
     )
     .reset_index()
 )
@@ -495,7 +496,6 @@ contratos_con_pos = set(clientes_con_posiciones["# Contrato"].unique())
 if rol_actual == "admin":
     clientes_base = df_todos_clientes
 else:
-    # Obtener los contratos que pertenecen a este asesor según el sheet
     nombres_asesor = set(df_asesores[df_asesores["Asesor"] == asesor_actual]["Nombre"])
     clientes_base  = df_todos_clientes[df_todos_clientes["nombre"].isin(nombres_asesor)]
 
@@ -505,6 +505,7 @@ clientes_sin_posiciones = pd.DataFrame([
         "Nombre":              row["nombre"],
         "valuacion_total":     0.0,
         "valor_total_cartera": row["valor_total_cartera"],
+        "saldo_efectivo":      row["saldo_efectivo"],
     }
     for _, row in clientes_base.iterrows()
     if row["contrato"] not in contratos_con_pos
@@ -516,18 +517,21 @@ resumen_clientes = pd.concat(
     ignore_index=True
 )
 
-# Calcular comisión y liquidez
+# Calcular comisión y liquidez usando Saldo Efectivo
 resumen_clientes["Comisión mensual"] = resumen_clientes["valor_total_cartera"] * 0.01 / 12
-resumen_clientes["Liquidez"]         = resumen_clientes["valor_total_cartera"] - resumen_clientes["valuacion_total"]
-resumen_clientes["Cubre comisión"] = ((resumen_clientes["valor_total_cartera"] > 0) &(resumen_clientes["Liquidez"] >= resumen_clientes["Comisión mensual"]))
+resumen_clientes["Liquidez"]         = resumen_clientes["saldo_efectivo"]
+resumen_clientes["Cubre comisión"]   = (
+    (resumen_clientes["valor_total_cartera"] > 0) &
+    (resumen_clientes["Liquidez"] >= resumen_clientes["Comisión mensual"])
+)
 
 # Separar los que no cubren
 sin_liquidez = resumen_clientes[~resumen_clientes["Cubre comisión"]].sort_values("Liquidez")
 
 # Métricas de la alerta
 a1, a2, a3 = st.columns(3)
-a1.metric("Total clientes",         len(resumen_clientes))
-a2.metric("Cubren comisión",        resumen_clientes["Cubre comisión"].sum())
+a1.metric("Total clientes",          len(resumen_clientes))
+a2.metric("Cubren comisión",         resumen_clientes["Cubre comisión"].sum())
 a3.metric("Sin liquidez suficiente", len(sin_liquidez))
 
 if sin_liquidez.empty:
