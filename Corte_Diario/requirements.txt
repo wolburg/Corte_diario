@@ -1,5 +1,7 @@
 streamlit
 pandas
 openpyxl
+xlrd
 requests
 plotly
+streamlit-authenticator==0.2.3
