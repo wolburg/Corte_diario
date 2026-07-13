@@ -626,7 +626,7 @@ fila_liquidez = pd.DataFrame([{
     "Fecha de vencimiento": None,
     "Dias a vencimiento":   None,
 }])
-df_tabla = pd.concat([df_filtrado[cols], fila_liquidez[cols]], ignore_index=True)
+df_tabla = df_filtrado[cols].copy()
 
 # ── Tabla ─────────────────────────────────────────────────────────────────────
 styled = df_tabla.style.format(fmt, na_rep="—")
