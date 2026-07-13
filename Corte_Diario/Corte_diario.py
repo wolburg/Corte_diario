@@ -245,18 +245,6 @@ pares_unicos = (
 # ─────────────────────────────────────────────────────────────────────────────
 # DATAFRAME FINAL
 # ─────────────────────────────────────────────────────────────────────────────
-
-df_final = df_resultado[[
-    'contrato',
-    'nombre',
-    'ticker',
-    'serie',
-    'valuacion',
-    "valor_total_cartera",
-    "saldo_efectivo",
-]].copy()
-
-
 df_final = df_resultado[[
     'contrato',
     'nombre',
@@ -274,7 +262,7 @@ df_final.columns = [
     'Serie',
     'Valuación',
     'Valor Total de la Cartera',
-    'Saldo Efectivo',     
+    'Saldo Efectivo'
 ]
 
 
