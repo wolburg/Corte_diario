@@ -257,6 +257,16 @@ df_final = df_resultado[[
 ]].copy()
 
 
+df_final = df_resultado[[
+    'contrato',
+    'nombre',
+    'ticker',
+    'serie',
+    'valuacion',
+    'valor_total_cartera',
+    'saldo_efectivo',     
+]].copy()
+
 df_final.columns = [
     '# Contrato',
     'Nombre',
@@ -264,8 +274,9 @@ df_final.columns = [
     'Serie',
     'Valuación',
     'Valor Total de la Cartera',
-    'Saldo Efectivo', 
+    'Saldo Efectivo',     
 ]
+
 
 
 df_final["Emisora"] = df_final["Ticker"] + " " + df_final["Serie"]
