@@ -213,6 +213,10 @@ vtc_por_contrato = {}
 nombres_por_contrato = {}
 saldo_efectivo_por_contrato = {} 
 
+#Rregistrar acciones 
+registros_acciones = []
+en_acciones = False
+
 for idx, fila in df_raw.iterrows():
     col_a = fila[0]  
     col_b = fila[1]  
@@ -227,11 +231,12 @@ for idx, fila in df_raw.iterrows():
         en_posiciones   = False
         en_mdo_dinero   = False
         en_emisoras     = False
+        en_acciones     = False  # ← resetear
         if contrato_actual not in vtc_por_contrato:
             vtc_por_contrato[contrato_actual] = 0.0
         nombres_por_contrato[contrato_actual] = nombre_actual
         continue
-    #VTC
+
     if val_a == 'Valor Total de la Cartera':
         vtc_por_contrato[contrato_actual] = float(fila[1]) if pd.notna(fila[1]) else 0.0
         continue
@@ -239,23 +244,23 @@ for idx, fila in df_raw.iterrows():
         saldo_efectivo_por_contrato[contrato_actual] = float(fila[1]) if pd.notna(fila[1]) else 0.0
         continue
 
-    # Detectar sección 'Posiciones'
     if val_a == 'Posiciones':
         en_posiciones = True
         en_mdo_dinero = False
         en_emisoras   = False
+        en_acciones   = False  # ← resetear
         continue
 
     if not en_posiciones:
         continue
 
-    # Detectar 'Mercado de Dinero' 
+    # ── Mercado de Dinero ─────────────────────────────────────────────────────
     if val_a == 'Mercado de Dinero':
         en_mdo_dinero = True
         en_emisoras   = False
+        en_acciones   = False
         continue
 
-    # Fin de Mercado de Dinero principal al encontrar otra sub-sección
     if en_mdo_dinero and en_emisoras and es_seccion_header(val_a):
         en_mdo_dinero = False
         en_emisoras   = False
@@ -263,10 +268,37 @@ for idx, fila in df_raw.iterrows():
             en_posiciones = True
         continue
 
+    # ── Mercado Accionario ────────────────────────────────────────────────────
+    if val_a == 'Posición de Mercado Accionario' or val_a == 'Mercado Accionario':
+        en_acciones   = True
+        en_mdo_dinero = False
+        en_emisoras   = False
+        continue
+
+    # Capturar acciones
+    if en_acciones:
+        if val_a == 'Emisora':
+            continue
+        if not val_a or pd.isna(col_a):
+            continue
+        if es_seccion_header(val_a):
+            en_acciones = False
+            continue
+        ticker_acc, serie_acc = parsear_emisora(val_a)
+        if ticker_acc:
+            registros_acciones.append({
+                'contrato': contrato_actual,
+                'nombre':   nombre_actual,
+                'ticker':   ticker_acc,
+                'serie':    serie_acc,
+                'valuacion': col_e if pd.notna(col_e) else None,
+            })
+        continue
+
+    # ── MdoD emisoras ─────────────────────────────────────────────────────────
     if not en_mdo_dinero:
         continue
 
-    # Detectar 'Emisora'
     if val_a == 'Emisora':
         en_emisoras = True
         continue
@@ -274,12 +306,9 @@ for idx, fila in df_raw.iterrows():
     if not en_emisoras:
         continue
 
-    # Fila de datos de emisora 
-    # Terminamos si la celda A está vacía (fila de subtotales) o es un header
     if not val_a or pd.isna(col_a):
         continue
 
-    # Saltar si empieza una nueva sub-sección dentro de Posiciones
     if es_seccion_header(val_a):
         en_mdo_dinero = False
         en_emisoras   = False
@@ -287,20 +316,19 @@ for idx, fila in df_raw.iterrows():
             en_posiciones = True
         continue
 
-    # Parsear emisora
     ticker, serie = parsear_emisora(val_a)
     if not ticker:
         continue
 
     valuacion = col_e if pd.notna(col_e) else None
-
     registros.append({
-        'contrato'       : contrato_actual,
-        'nombre'         : nombre_actual,
-        'ticker'         : ticker,
-        'serie'          : serie,
-        'valuacion'      : valuacion, 
+        'contrato': contrato_actual,
+        'nombre':   nombre_actual,
+        'ticker':   ticker,
+        'serie':    serie,
+        'valuacion': valuacion, 
     })
+
 
 df_resultado = pd.DataFrame(registros)
 df_vtc = pd.DataFrame([
@@ -318,7 +346,6 @@ df_resultado = df_resultado.merge(
     df_vtc[['contrato', 'valor_total_cartera', "saldo_efectivo"]],
     on='contrato', how='left')
 
-
 # Vista rápida: pares (ticker, serie) únicos
 pares_unicos = (
     df_resultado[['ticker', 'serie']]
@@ -326,6 +353,18 @@ pares_unicos = (
     .sort_values(['ticker', 'serie'])
     .reset_index(drop=True)
 )
+
+#df de acciones
+df_acciones = pd.DataFrame(registros_acciones)
+
+if not df_acciones.empty:
+    df_acciones = df_acciones.merge(
+        df_vtc[['contrato', 'valor_total_cartera']],
+        on='contrato', how='left'
+    )
+    df_acciones.columns = ['contrato', 'Nombre', 'Ticker', 'Serie', 
+                           'Valuación', 'Valor Total de la Cartera']
+    df_acciones["Emisora"] = df_acciones["Ticker"] + " " + df_acciones["Serie"]
 
 # ─────────────────────────────────────────────────────────────────────────────
 # DATAFRAME FINAL
@@ -650,8 +689,25 @@ if not df_con_tasa.empty:
 else:
     prom_tasa = 0
 
-# ── Info ──────────────────────────────────────────────────────────────────────
 st.markdown(f"### {nombre_cli}")
+
+#  Posición de Mercado Accionario 
+if not df_acciones.empty:
+    df_acc_cli = df_acciones[df_acciones["contrato"] == contrato_sel].copy()
+    if not df_acc_cli.empty:
+        st.subheader("Posición de Mercado Accionario")
+        df_acc_cli["% Cartera"] = df_acc_cli["Valuación"] / vtc_cli * 100
+        st.dataframe(
+            df_acc_cli[["Emisora", "Valuación", "% Cartera"]].style.format({
+                "Valuación":  "${:,.2f}",
+                "% Cartera":  "{:.2f}%",
+            }),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+
+# ── Info ──────────────────────────────────────────────────────────────────────
 st.markdown("""
     <style>
     [data-testid="stMetricValue"] { font-size: 1.1rem !important; }
