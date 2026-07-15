@@ -213,7 +213,7 @@ vtc_por_contrato = {}
 nombres_por_contrato = {}
 saldo_efectivo_por_contrato = {} 
 
-#Rregistrar acciones 
+#Rregistrar accion
 registros_acciones = []
 en_acciones = False
 
@@ -477,13 +477,19 @@ if not sin_asesor.empty:
 #Alarms de dias a vencer 
 proximos = df_vista[
     (df_vista["Dias a vencimiento"] >= 0) &
-    (df_vista["Dias a vencimiento"] <= 30)][["# Contrato", "Nombre", "Emisora", "Valuación", "Dias a vencimiento"]].drop_duplicates().sort_values("Dias a vencimiento")
+    (df_vista["Dias a vencimiento"] <= 30)][["# Contrato", "Nombre", "Emisora", "Valuación", "Saldo Efectivo", "Valor Total de la Cartera", "Dias a vencimiento"]].drop_duplicates().sort_values("Dias a vencimiento").copy()
+
+proximos["% Liquidez"] = (proximos["Saldo Efectivo"] / proximos["Valor Total de la Cartera"] * 100).round(2)
+
 
 if not proximos.empty:
     st.warning(f"⚠️ {len(proximos)} posición(es) vencen en los próximos 30 días")
     st.dataframe(
         proximos.style.format({
             "Valuación": "${:,.2f}",
+            "Saldo Efectivo": "${:,.2f}",
+            "Valor Total de la Cartera": "${:,.2f}",
+            "% Liquidez": "{:.2f}%",
             "Dias a vencimiento": "{:.0f} días",
         }),
         use_container_width=True,
