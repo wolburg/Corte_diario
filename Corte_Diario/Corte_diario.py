@@ -444,6 +444,8 @@ if not emisoras_sin_catalogo.empty:
 
 hoy = pd.Timestamp.today().normalize()
 
+
+
 df_final["Fecha de vencimiento"] = pd.to_datetime(df_final["Fecha de vencimiento"], dayfirst=True, errors='coerce')
 df_final["Fecha de emisión"]     = pd.to_datetime(df_final["Fecha de emisión"],     dayfirst=True, errors='coerce')
 df_final["Dias a vencimiento"]   = (df_final["Fecha de vencimiento"] - hoy).dt.days
@@ -476,10 +478,8 @@ if not sin_asesor.empty:
 
 #Alarms de dias a vencer 
 proximos = df_vista[
-    df_vista["Dias a vencimiento"].notna() &
     (df_vista["Dias a vencimiento"] >= 0) &
-    (df_vista["Dias a vencimiento"] <= 30)
-][["# Contrato", "Nombre", "Emisora", "Valuación", "Saldo Efectivo", "Valor Total de la Cartera", "Dias a vencimiento"]].sort_values("Dias a vencimiento").copy()
+    (df_vista["Dias a vencimiento"] <= 30)][["# Contrato", "Nombre", "Emisora", "Valuación", "Saldo Efectivo", "Valor Total de la Cartera", "Dias a vencimiento"]].drop_duplicates().sort_values("Dias a vencimiento").copy()
 
 proximos["% Liquidez"] = (proximos["Saldo Efectivo"] / proximos["Valor Total de la Cartera"] * 100).round(2)
 
